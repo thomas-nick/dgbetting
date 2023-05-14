@@ -1,0 +1,89 @@
+use ink_lang::contract;
+
+#[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
+pub struct Tournament {
+    name: String,
+    course: String,
+    date: String,
+    participants: Vec<String>,
+}
+
+#[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
+pub struct Bet {
+    amount: u64,
+    participant: String,
+    odds: u64,
+}
+
+#[contract]
+mod golf_betting {
+    use super::{Tournament, Bet};
+    use ink_storage::collections::HashMap;
+
+    #[storage]
+    pub struct GolfBetting {
+        tournaments: HashMap<String, Tournament>,
+        bets: HashMap<AccountId, Vec<Bet>>,
+    }
+
+    impl GolfBetting {
+        #[ink(constructor)]
+        pub fn new(&mut self) {
+            // Initialize the storage
+            self.tournaments = HashMap::new();
+            self.bets = HashMap::new();
+        }
+
+        #[ink(message)]
+        pub fn create_tournament(&mut self, name: String, course: String, date: String, participants: Vec<String>) {
+            // Create a new tournament
+            let tournament = Tournament {
+                name,
+                course,
+                date,
+                participants,
+            };
+
+            // Add the tournament to the storage
+            self.tournaments.insert(name.clone(), tournament);
+        }
+
+        #[ink(message)]
+        pub fn place_bet(&mut self, tournament_name: String, participant: String, odds: u64) {
+            // Get the caller's account ID
+            let caller = self.env().caller();
+
+            // Check if the tournament exists
+            let tournament = self.tournaments.get(&tournament_name).expect("Tournament not found");
+
+            // Check if the participant is valid
+            assert!(tournament.participants.contains(&participant), "Invalid participant");
+
+            // Create a new bet
+            let bet = Bet {
+                amount: self.env().transferred_balance(),
+                participant,
+                odds,
+            };
+
+            // Add the bet to the storage
+            let bets = self.bets.entry(caller).or_insert(Vec::new());
+            bets.push(bet);
+        }
+
+        #[ink(message)]
+        pub fn get_bets(&self) -> Vec<Bet> {
+            // Get the caller's account ID
+            let caller = self.env().caller();
+
+            // Get the caller's bets
+            self.bets.get(&caller).cloned().unwrap_or(Vec::new())
+        }
+
+        #[ink(message)]
+        pub fn payout(&mut self, tournament_name: String, winner: String) {
+            // Check if the tournament exists
+            let tournament = self.tournaments.get(&tournament_name).expect("Tournament not found");
+
+            // Check if the winner is valid
+            assert!(tournament.part
