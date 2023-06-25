@@ -1,7 +1,7 @@
 import csv
 
 # Read in the data from the CSV file
-with open("UDisc Scorecardscurr.csv", mode="r") as csvfile:
+with open("UDiscScorecardscurr.csv", mode="r") as csvfile:
     reader = csv.DictReader(csvfile)
     rows = list(reader)
 
